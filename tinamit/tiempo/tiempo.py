@@ -261,7 +261,7 @@ a_unid_ft = {
 }
 
 _a_unid_pandas = {
-    'año': 'A',
+    'año': 'Y',
     'mes': 'M',
     'día': 'D',
     'hora': 'H',
