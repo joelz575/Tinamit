@@ -54,7 +54,7 @@ class Modelo(object):
 
         raise NotImplementedError
 
-    def simular(símismo, t, nombre='Tinamït', extern=None, clima=None, vars_interés=None):
+    def simular(símismo, t: object, nombre: object = 'Tinamït', extern: object = None, clima: object = None, vars_interés: object = None) -> object:
         """
         
         Parameters

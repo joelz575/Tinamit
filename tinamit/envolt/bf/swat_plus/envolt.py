@@ -4,12 +4,15 @@ import socket
 import subprocess
 import tempfile
 from ast import literal_eval
+
 import numpy as np
+from ctypes import *
+import json
 
 from tinamit.envolt.bf import ModeloBF
+from tinamit.envolt.bf.swat_plus._vars import obt_info_vars
 from tinamit.mod import VariablesMod, Variable
 from tinamit.config import _
-
 
 
 class ModeloSWATPlus(ModeloBF):
@@ -29,7 +32,7 @@ class ModeloSWATPlus(ModeloBF):
         símismo.archivo = archivo
 
         símismo.dic_ingr = {}
-        símismo.dic_ingr = símismo.obt_info_vars(símismo.archivo)
+        símismo.dic_ingr = obt_info_vars(símismo.archivo)
 
         variables = []
         for nmbr, info in símismo.dic_ingr.items():
@@ -43,41 +46,71 @@ class ModeloSWATPlus(ModeloBF):
 
         super().__init__(variablesMod, nombre)
 
-    def obt_info_vars(símismo, archivo):
-        return {'D': {"tipo": "Channel", "unid": "L", "ingr": True,
-                      "egr": True, 'val': [1, 2, 2]},
-                'cha 2': {"nombre": "cha2", "tipo": "Channel", "unid": "L", "ingr": True,
-                          "egr": True, 'val': [1, 2, 2]},
-                'Lluvia': {"nombre": "Lluvia", "unid": "m*m*m/mes", "ingr": True, "egr": True, "val": 200},
-                'Bosques': {"nombre": "Bosque", "unid": "m*m", "ingr": True, "egr": True, "val": 200}}
-
-
     def escribir(símismo, archivo):
-        return símismo.obt_info_vars(archivo)
+        return obt_info_vars(archivo)
 
     def unidad_tiempo(símismo):
         return 'días'
 
     def incrementar(símismo, rebanada):
-        # run one step of SWATPlus
-
-        #Mandar los valores nuevas a SWATPlus
+        print("In incrementar")
+        msg = ""
+        # Mandar los valores nuevas a SWATPlus
         for var in rebanada.resultados:
-            símismo.clientsocket.sendall(bytes("MAND: " + str(var) + ": " + str(símismo.variables[str(var)]._val), "utf-8"))
-            msg = símismo.clientsocket.recv(1024).decode("utf-8")
-            print(msg)
 
-        #Correr un paso de simulaccion
-        símismo.clientsocket.sendall(bytes("CORR: " + str(rebanada.n_pasos), "utf-8"))
-        msg = símismo.clientsocket.recv(1024).decode("utf-8")
-        print(msg)
+            símismo.clientsocket.sendall(bytes("MAND:" + str(símismo.dic_ingr[str(var)]["nombre"]) + ":" +
+                                               str(len(símismo.variables[str(var)]._val)) + ":" + str(
+                símismo.variables[str(var)]._val), "utf-8"))
 
-        #Obtiene los valores de eso paso de la simulaccion
+            símismo.clientsocket.sendall(bytes(";", "utf-8"))
+
+            while True:
+                data = str(np.unicode(símismo.clientsocket.recv(1), errors='ignore'))
+                msg += data
+                if msg.__contains__("recvd"):
+                    msg = ""
+                    data = ""
+                    break
+
+            #print("this is in python:" + msg)
+            # only move on once a string is sent
+
+        # Correr un paso de simulaccion
+        símismo.clientsocket.sendall(bytes("CORR:" + str(rebanada.n_pasos), "utf-8"))
+        símismo.clientsocket.sendall(bytes(";", "utf-8"))
+        msg = ""
+        while True:
+            data = str(np.unicode(símismo.clientsocket.recv(1), errors='ignore'))
+            msg += data
+            if msg.__contains__("running"):
+                msg = ""
+                data = ""
+                break
+        #print(msg)
+
+        # Obtiene los valores de eso paso de la simulaccion
         for var in rebanada.resultados:
-            símismo.clientsocket.sendall(bytes("OBT: " + str(var), "utf-8"))
-            msg = símismo.clientsocket.recv(1024).decode("utf-8")
-            símismo.variables[str(var)].poner_val(np.array(literal_eval(msg)))
+            símismo.clientsocket.sendall(bytes("OBT:" + str(símismo.dic_ingr[str(var)]["nombre"]), "utf-8"))
+            símismo.clientsocket.sendall(bytes(";", "utf-8"))
+            msg = ""
+            while True:
+                data = str(np.unicode(símismo.clientsocket.recv(1), errors='ignore'))
+                msg += data
+                #print(msg)
+                if not msg.__contains__("["):
+                    msg = ""
+                elif msg.__contains__(";") and msg.__contains__("]"):
+                    break
+            split_msg = msg.split('[')
+            if split_msg.__len__() != 1:
+                split_msg = split_msg[1].split("]")
+                split_msg = split_msg[0].split(" ")
+                nums = []
+                for i in range(len(split_msg)):
+                    if símismo.isfloat(split_msg[i]):
+                        nums.append(float(split_msg[i]))
 
+                símismo.variables[str(var)].poner_val(np.array(nums))
 
         super().incrementar(rebanada=rebanada)
 
@@ -85,20 +118,29 @@ class ModeloSWATPlus(ModeloBF):
         return True
 
     def iniciar_modelo(símismo, corrida):
-        símismo.direc_trabajo = tempfile.mkdtemp('_' + str(hash(corrida)))
+        #símismo.direc_trabajo = tempfile.mkdtemp('_' + str(hash(corrida)))
+        símismo.direc_trabajo = shutil.copytree(símismo.archivo, '_' + str(hash(corrida)))
+
+        if corrida.t.f_inic is None:
+            raise ValueError('A start date is necessary when using SWAT+')
         super().iniciar_modelo(corrida=corrida)
+
         # iniciate SWATPlus Model
-        símismo.proc = subprocess.Popen(["python", símismo.obt_conf('exe'), str(símismo.socket.getsockname()[1])],
-                                        cwd=símismo.direc_trabajo)
-        símismo.clientsocket, address = símismo.socket.accept()
-        print("hello I am here")
         print(símismo.socket.getsockname())
+
+        símismo.proc = subprocess.Popen(
+            [símismo.obt_conf('exe'), str(símismo.socket.getsockname()[1]), str(símismo.socket.getsockname()[0])],
+            cwd=símismo.direc_trabajo
+        )
+        print("Done iniciar")
+        símismo.clientsocket, address = símismo.socket.accept()
+
 
     def cerrar(símismo):
         # close model
-        símismo.clientsocket.sendall(b'FIN')
+        símismo.clientsocket.sendall(b'FIN;')
         símismo.proc.kill()
-        #shutil.rmtree(símismo.direc_trabajo)
+        # shutil.rmtree(símismo.direc_trabajo)
 
     def cambiar_vals(símismo, valores):
         super().cambiar_vals(valores)
@@ -108,3 +150,16 @@ class ModeloSWATPlus(ModeloBF):
 
     def instalado(cls):
         return cls.obt_conf('exe') is not None
+
+    def python_dict_to_fortran(símismo, d):
+        return símismo.python_str_to_fortran(json.dumps(d))
+
+    def python_str_to_fortran(símismo, s):
+        return cast(create_string_buffer(s.encode()), c_char_p)
+
+    def isfloat(símismo, value):
+        try:
+            float(value)
+            return True
+        except ValueError:
+            return False
