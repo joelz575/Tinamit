@@ -99,7 +99,7 @@ class ModeloSWATPlus(ModeloBF):
                 data = str(np.unicode(símismo.clientsocket.recv(1), errors='ignore'))
                 msg += data
                 #print(msg)
-                if not msg.__contains__("["):
+                if '[' not in msg:
                     msg = ""
                 elif msg.__contains__(";") and msg.__contains__("]"):
                     break
