@@ -44,6 +44,9 @@ class ModeloSWATPlus(ModeloBF):
         símismo.socket.bind((socket.gethostname(), 0))
         símismo.socket.listen(5)
 
+        símismo.hru_mod = símismo.cha_mod = ''   # hru mode: 'hru' || 'hlt', cha mode: 'cha' || 'sdc'
+        # values assigned in símismo.deter_HRU_cha_mod() later
+
         super().__init__(variablesMod, nombre)
 
     def escribir(símismo, archivo):
@@ -53,7 +56,6 @@ class ModeloSWATPlus(ModeloBF):
         return 'días'
 
     def incrementar(símismo, rebanada):
-        print("In incrementar")
         msg = ""
         # Mandar los valores nuevas a SWATPlus
         for var in rebanada.resultados:
@@ -135,12 +137,33 @@ class ModeloSWATPlus(ModeloBF):
         print("Done iniciar")
         símismo.clientsocket, address = símismo.socket.accept()
 
+        símismo.deter_HRU_cha_mod()
+
+    def deter_HRU_cha_mod(símismo):
+        símismo.clientsocket.sendall(bytes("OBT:" + "hru_cha_mod", "utf-8"))
+        símismo.clientsocket.sendall(bytes(";", "utf-8"))
+        msg = ""
+        while True:
+            data = str(np.unicode(símismo.clientsocket.recv(1), errors='ignore'))
+            msg += data
+            if not msg.__contains__("["):
+                msg = ""
+            elif msg.__contains__(";") and msg.__contains__("]"):
+                break
+        split_msg = msg.split('[')
+        if split_msg.__len__() != 1:
+            split_msg = split_msg[1].split("]")
+            [hru_mod, cha_mod] = split_msg[0].split(" ")
+            símismo.hru_mod = hru_mod
+            símismo.cha_mod = cha_mod
+            print(símismo.hru_mod)
+            print(símismo.cha_mod)
 
     def cerrar(símismo):
         # close model
         símismo.clientsocket.sendall(b'FIN;')
         símismo.proc.kill()
-        # shutil.rmtree(símismo.direc_trabajo)
+        shutil.rmtree(símismo.direc_trabajo, ignore_errors=True)
 
     def cambiar_vals(símismo, valores):
         super().cambiar_vals(valores)
@@ -151,15 +174,26 @@ class ModeloSWATPlus(ModeloBF):
     def instalado(cls):
         return cls.obt_conf('exe') is not None
 
-    def python_dict_to_fortran(símismo, d):
-        return símismo.python_str_to_fortran(json.dumps(d))
-
-    def python_str_to_fortran(símismo, s):
-        return cast(create_string_buffer(s.encode()), c_char_p)
-
     def isfloat(símismo, value):
         try:
             float(value)
             return True
         except ValueError:
             return False
+
+    # class Landuse_Map():
+    #     def __init__(símismo, áreas, hrus):
+    #         return
+    #
+    #     def landuseChange(símismo, áreas):
+    #         return
+    #
+    # class HRU():
+    #     def __init__(símismo, nombre, posición, uso_de_suelo):
+    #         return
+    #
+    # class HRU_LTE(HRU):
+    #     def __init__(símismo, nombre, posición, uso_de_suelo):
+    #         super.__init__(nombre, posición, uso_de_suelo)
+    #         return
+
