@@ -5,8 +5,7 @@ from struct import pack
 
 import numpy as np
 
-from tinamit3.mod import Modelo
-from tinamit3.mod.simul import SimulModelo
+from tinamit.mod import Modelo
 
 
 class ModeloEnchufe(Modelo):
@@ -14,30 +13,16 @@ class ModeloEnchufe(Modelo):
     def unids(símismo):
         raise NotImplementedError
 
-
-class SimulEnchufe(SimulModelo):
-    HUÉSPED = '127.0.0.1'
-
-    def __init__(símismo, modelo):
-        super().__init__(modelo)
-
-        símismo._enchufe = e = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        e.bind((símismo.HUÉSPED, 0))
-        símismo.puerto = e.getsockname()[1]
-        e.listen()
-        símismo.con, puerto_recib = e.accept()
-
-        símismo.proceso = símismo.iniciar_proceso()
-
     @abstractmethod
     def iniciar_proceso(símismo):
         pass
 
     def cambiar_var(símismo, var):
-        MensajeCambiar(símismo.con, variable=str(var), valor=var.valor).mandar()
+        MensajeCambiar(símismo.con, variable=var, valor=var.obt_val()).mandar()
 
     def leer_var(símismo, var):
         val = MensajeLeer(símismo.con, var).mandar()
+        return val
 
     def incrementar(símismo, rbnd):
         for paso in rbnd:
@@ -99,12 +84,12 @@ class MensajeCambiar(Mensaje):
 
     def __init__(símismo, enchufe, variable, valor):
         símismo.variable = variable
-        super().__init__(enchufe, contenido=valor.to_bytes())
+        super().__init__(enchufe, contenido=valor.tobytes())
 
     def _encabezado(símismo):
         encab = super()._encabezado()
-        encab['var'] = str(símismo.variable)
-        encab['matr'] = símismo.variable.esmatriz
+        encab['var'] = str(símismo.variable.código)
+        encab['matr'] = ~(símismo.variable.obt_val().size <= 1)
         return encab
 
 
@@ -117,11 +102,19 @@ class MensajeLeer(Mensaje):
 
     def _encabezado(símismo):
         encab = super()._encabezado()
-        encab['var'] = str(símismo.variable)
+        encab['var'] = str(símismo.variable.código)
         return encab
 
     def _procesar_respuesta(símismo):
-        return RecepciónVariable(símismo.con).recibir().reshape(símismo.variable.forma)
+        val = RecepciónVariable(símismo.con).recibir()
+        if símismo.variable.esmatriz:
+            if isinstance(val, np.ndarray):
+                val = val.reshape(símismo.variable.forma)
+            else:
+                val = np.full(símismo.variable.forma, val)
+        elif isinstance(val, np.ndarray):
+            raise TypeError
+        return val
 
 
 class MensajeIncrementar(Mensaje):
