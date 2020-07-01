@@ -46,7 +46,8 @@ class ModeloEnchufe(Modelo):
 class Mensaje(object):
     def __init__(símismo, con, contenido=''):
         símismo.con = con
-        símismo.contenido = contenido if isinstance(contenido, bytes) else contenido.encode('utf8')
+        #------------------------------Made A Change Here---------------------------------------------------------------
+        símismo.contenido = json.dumps((np.array(contenido).tolist()), ensure_ascii=False).encode('utf8')
 
     @property
     def tipo(símismo):
@@ -71,6 +72,7 @@ class Mensaje(object):
 
         # Mandar contenido
         if símismo.contenido:
+
             símismo.con.sendall(símismo.contenido)
 
         return símismo._procesar_respuesta()
@@ -84,12 +86,32 @@ class MensajeCambiar(Mensaje):
 
     def __init__(símismo, enchufe, variable, valor):
         símismo.variable = variable
-        super().__init__(enchufe, contenido=valor.tobytes())
+        super().__init__(enchufe, contenido=valor)
 
     def _encabezado(símismo):
         encab = super()._encabezado()
         encab['var'] = str(símismo.variable.código)
         encab['matr'] = ~(símismo.variable.obt_val().size <= 1)
+        val = símismo.variable.obt_val()
+        #-------------------------------------Made A Change Here--------------------------------------------------------
+        if isinstance(val, np.ndarray):
+            if np.issubdtype(val.dtype, np.int_):
+                encab['tipo_cont'] = "int"
+            elif np.issubdtype(val.dtype, np.float_):
+                encab['tipo_cont'] = "flt"
+            elif np.issubdtype(val.dtype, object):
+                encab['tipo_cont'] = "str"
+            else:
+                raise TypeError
+        else:
+            if isinstance(val, int):
+                encab['tipo_cont'] = "int"
+            elif isinstance(val, float):
+                encab['tipo_cont'] = "flt"
+            elif isinstance(val, str):
+                encab['tipo_cont'] = "str"
+            else:
+                raise TypeError
         return encab
 
 

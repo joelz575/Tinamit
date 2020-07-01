@@ -4,7 +4,7 @@ import socket
 import subprocess
 import tempfile
 from ast import literal_eval
-
+import pandas as pandas
 import numpy as np
 from ctypes import *
 import json
@@ -42,7 +42,7 @@ class ModeloSWATPlus(ModeloBF, ModeloEnchufe):
                 VariableEnchufe(nombre=nmbr, código=info["código"], unid=info["unid"], inic=info["val"], ingr=info["ingr"], egr=info["egr"]))
         variablesMod = VariablesMod(variables)
 
-        #símismo.hru_mod = símismo.cha_mod = ''   # hru mode: 'hru' || 'hlt', cha mode: 'cha' || 'sdc'
+        símismo.hru_cha_mod = np.zeros(4)  # [hru, hlt, cha, sdc (lcha)]
         # values assigned in símismo.deter_HRU_cha_mod() later
 
         super().__init__(variablesMod, nombre)
@@ -124,26 +124,23 @@ class ModeloSWATPlus(ModeloBF, ModeloEnchufe):
         print(e.getsockname())
         #símismo.direc_trabajo = tempfile.mkdtemp('_' + str(hash(corrida)))
         símismo.direc_trabajo = shutil.copytree(símismo.archivo, '_' + str(hash(corrida)))
-
+        print(símismo.direc_trabajo)
         if corrida.t.f_inic is None:
             raise ValueError('A start date is necessary when using SWAT+')
         super().iniciar_modelo(corrida=corrida)
 
-        # iniciate SWATPlus Model
+        #iniciate SWATPlus Model
         símismo.proc = subprocess.Popen(
             [símismo.obt_conf('exe'), str(símismo.puerto), str(símismo.HUÉSPED)],
             cwd=símismo.direc_trabajo
         )
         print("Done iniciar")
-
-
         símismo.con, puerto_recib = e.accept()
         símismo.proceso = símismo.iniciar_proceso()
         símismo.deter_uso_de_tierra()
+        símismo.deter_HRU_cha_mod()
 
-    #     símismo.deter_HRU_cha_mod()
-
-    # def deter_HRU_cha_mod(símismo):
+    def deter_HRU_cha_mod(símismo):
     #     símismo.clientsocket.sendall(bytes("OBT:" + "hru_cha_mod", "utf-8"))
     #     símismo.clientsocket.sendall(bytes(";", "utf-8"))
     #     msg = ""
@@ -162,6 +159,21 @@ class ModeloSWATPlus(ModeloBF, ModeloEnchufe):
     #         símismo.cha_mod = cha_mod
     #         print(símismo.hru_mod)
     #         print(símismo.cha_mod)
+        with open(símismo.direc_trabajo + '\\object.cnt') as objects:
+        # NAME,AREA_LS_HA,AREA_TOT_HA,OBJ,HRU,LTE,RU,MODFLOW,AQU,CHA,RES,REC,EXCO,DR,CANAL,PUMP,OUT,CHANDEG,2DAQU
+        # for line in
+        #specs = pandas.DataFrame(objects.readlines())
+            specs_all = objects.readlines()[2].split(' ')
+            specs = []
+            for i in range(0, len(specs_all)):
+                if not len(specs_all[i]) < 1:
+                    specs.append(specs_all[i])
+
+            símismo.hru_cha_mod[0] = int(specs[4])
+            símismo.hru_cha_mod[1] = int(specs[5])
+            símismo.hru_cha_mod[2] = int(specs[9])
+            símismo.hru_cha_mod[3] = int(specs[17])
+
 
     def deter_uso_de_tierra(símismo):
         símismo.archivo_uso_de_tierra = open(símismo.direc_trabajo + '\\landuse.lum', 'r')
@@ -175,12 +187,6 @@ class ModeloSWATPlus(ModeloBF, ModeloEnchufe):
                 print(uso_de_tierra)
             counter += 1
         símismo.archivo_uso_de_tierra.close()
-        objects = open(símismo.direc_trabajo+'\\object.cnt')
-        #NAME,AREA_LS_HA,AREA_TOT_HA,OBJ,HRU,LTE,RU,MODFLOW,AQU,CHA,RES,REC,EXCO,DR,CANAL,PUMP,OUT,CHANDEG,2DAQU
-        specs = objects[2].split(' ')
-        símismo.variables['HRU_uso_de_tierra'].poner_val(np.zeros(specs[4]))
-
-
 
 
     def cerrar(símismo):
