@@ -18,7 +18,7 @@ from tinamit.config import _
 
 
 class ModeloSWATPlus(ModeloBF, ModeloEnchufe):
-    def __init__(símismo, archivo, nombre='SWATPlus'):
+    def __init__(símismo, archivo, nombre='SWATPlus', connectar=True):
         # Buscar la ubicación del modelo SWATPlus.
         símismo.exe_SWATPlus = símismo.obt_conf(
             'exe',
@@ -44,7 +44,7 @@ class ModeloSWATPlus(ModeloBF, ModeloEnchufe):
 
         símismo.hru_cha_mod = np.zeros(4)  # [hru, hlt, cha, sdc (lcha)]
         # values assigned in símismo.deter_HRU_cha_mod() later
-
+        símismo.connectar = connectar
         super().__init__(variablesMod, nombre)
 
     def escribir(símismo, archivo):
@@ -54,92 +54,99 @@ class ModeloSWATPlus(ModeloBF, ModeloEnchufe):
         return 'días'
 
     def incrementar(símismo, rebanada):
-        msg = ""
-        # Mandar los valores nuevas a SWATPlus
-        for var in rebanada.resultados:
-            símismo.cambiar_var(var.var)
-            #símismo.clientsocket.sendall(bytes("TOMAR:" + str(símismo.dic_ingr[str(var)]["nombre"]) + ":" +
-            #                                   str(len(símismo.variables[str(var)]._val)) + ":" + str(
-            #    símismo.variables[str(var)]._val), "utf-8"))
+        if símismo.connectar:
+            msg = ""
+            # Mandar los valores nuevas a SWATPlus
+            for var in rebanada.resultados:
+                símismo.cambiar_var(var.var)
+                #símismo.clientsocket.sendall(bytes("TOMAR:" + str(símismo.dic_ingr[str(var)]["nombre"]) + ":" +
+                #                                   str(len(símismo.variables[str(var)]._val)) + ":" + str(
+                #    símismo.variables[str(var)]._val), "utf-8"))
 
-            #símismo.clientsocket.sendall(bytes(";", "utf-8"))
+                #símismo.clientsocket.sendall(bytes(";", "utf-8"))
 
-            #while True:
-             #   data = str(np.unicode(símismo.clientsocket.recv(1), errors='ignore'))
-             #   msg += data
-             #   if msg.__contains__("recvd"):
-             #       msg = ""
-            #      data = ""
-            #        break
-            # only move on once a string is sent
+                #while True:
+                 #   data = str(np.unicode(símismo.clientsocket.recv(1), errors='ignore'))
+                 #   msg += data
+                 #   if msg.__contains__("recvd"):
+                 #       msg = ""
+                #      data = ""
+                #        break
+                # only move on once a string is sent
 
-        # Correr un paso de simulaccion
-        símismo.incrementar(rebanada)
-        #símismo.clientsocket.sendall(bytes("CORR:" + str(rebanada.n_pasos), "utf-8"))
-        #símismo.clientsocket.sendall(bytes(";", "utf-8"))
-        #msg = ""
-        #while True:
-        #    data = str(np.unicode(símismo.clientsocket.recv(1), errors='ignore'))
-        #    msg += data
-        #    if msg.__contains__("running"):
-        #        msg = ""
-        #        data = ""
-        #        break
-        #print(msg)
-
-        # Obtiene los valores de eso paso de la simulaccion
-        for var in rebanada.resultados:
-            #símismo.clientsocket.sendall(bytes("OBT:" + str(símismo.dic_ingr[str(var)]["nombre"]), "utf-8"))
+            # Correr un paso de simulaccion
+            símismo.incrementar(rebanada)
+            #símismo.clientsocket.sendall(bytes("CORR:" + str(rebanada.n_pasos), "utf-8"))
             #símismo.clientsocket.sendall(bytes(";", "utf-8"))
             #msg = ""
             #while True:
             #    data = str(np.unicode(símismo.clientsocket.recv(1), errors='ignore'))
             #    msg += data
-            #    #print(msg)
-            #    if '[' not in msg:
+            #    if msg.__contains__("running"):
             #        msg = ""
-            #    elif msg.__contains__(";") and msg.__contains__("]"):
+            #        data = ""
             #        break
-            #split_msg = msg.split('[')
-            #if split_msg.__len__() != 1:
-            #    split_msg = split_msg[1].split("]")
-            #    split_msg = split_msg[0].split(" ")
-            #    nums = []
-            #    for i in range(len(split_msg)):
-            #        if símismo.isfloat(split_msg[i]):
-            #            nums.append(float(split_msg[i]))
+            #print(msg)
 
-            símismo.variables[str(var)].poner_val(símismo.leer_var(var.var))
+            # Obtiene los valores de eso paso de la simulaccion
+            for var in rebanada.resultados:
+                #símismo.clientsocket.sendall(bytes("OBT:" + str(símismo.dic_ingr[str(var)]["nombre"]), "utf-8"))
+                #símismo.clientsocket.sendall(bytes(";", "utf-8"))
+                #msg = ""
+                #while True:
+                #    data = str(np.unicode(símismo.clientsocket.recv(1), errors='ignore'))
+                #    msg += data
+                #    #print(msg)
+                #    if '[' not in msg:
+                #        msg = ""
+                #    elif msg.__contains__(";") and msg.__contains__("]"):
+                #        break
+                #split_msg = msg.split('[')
+                #if split_msg.__len__() != 1:
+                #    split_msg = split_msg[1].split("]")
+                #    split_msg = split_msg[0].split(" ")
+                #    nums = []
+                #    for i in range(len(split_msg)):
+                #        if símismo.isfloat(split_msg[i]):
+                #            nums.append(float(split_msg[i]))
 
-        super().incrementar(rebanada=rebanada)
+                símismo.variables[str(var)].poner_val(símismo.leer_var(var.var))
+
+            super().incrementar(rebanada=rebanada)
 
     def paralelizable(símismo):
         return True
 
     def iniciar_modelo(símismo, corrida):
-        símismo._enchufe = e = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        e.bind((símismo.HUÉSPED, 0))
-        símismo.puerto = e.getsockname()[1]
-        e.listen()
-        print(e.getsockname())
-        #símismo.direc_trabajo = tempfile.mkdtemp('_' + str(hash(corrida)))
-        símismo.direc_trabajo = shutil.copytree(símismo.archivo, '_' + str(hash(corrida)))
-        print(símismo.direc_trabajo)
-        if corrida.t.f_inic is None:
-            raise ValueError('A start date is necessary when using SWAT+')
-        super().iniciar_modelo(corrida=corrida)
+        if símismo.connectar:
+            símismo._enchufe = e = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            e.bind((símismo.HUÉSPED, 0))
+            símismo.puerto = e.getsockname()[1]
+            e.listen()
+            print(e.getsockname())
+            #símismo.direc_trabajo = tempfile.mkdtemp('_' + str(hash(corrida)))
+            símismo.direc_trabajo = shutil.copytree(símismo.archivo, '_' + str(hash(corrida)))
+            print(símismo.direc_trabajo)
+            if corrida.t.f_inic is None:
+                raise ValueError('A start date is necessary when using SWAT+')
+            super().iniciar_modelo(corrida=corrida)
 
-        #iniciate SWATPlus Model
-        símismo.proc = subprocess.Popen(
-            [símismo.obt_conf('exe'), str(símismo.puerto), str(símismo.HUÉSPED)],
-            cwd=símismo.direc_trabajo
-        )
-        print("Done iniciar")
-        símismo.con, puerto_recib = e.accept()
-        símismo.proceso = símismo.iniciar_proceso()
-        símismo.deter_uso_de_tierra()
-        símismo.deter_HRU_cha_mod()
-
+            #iniciate SWATPlus Model
+            símismo.proc = subprocess.Popen(
+                [símismo.obt_conf('exe'), str(símismo.puerto), str(símismo.HUÉSPED)],
+                cwd=símismo.direc_trabajo
+            )
+            print("Done iniciar")
+            símismo.con, puerto_recib = e.accept()
+            símismo.proceso = símismo.iniciar_proceso()
+            símismo.deter_uso_de_tierra()
+            símismo.deter_HRU_cha_mod()
+        else:
+            símismo.direc_trabajo = shutil.copytree(símismo.archivo, '_' + str(hash(corrida)))
+            símismo.proc = subprocess.Popen(
+                [símismo.obt_conf('exe')],
+                cwd=símismo.direc_trabajo
+            )
     def deter_HRU_cha_mod(símismo):
     #     símismo.clientsocket.sendall(bytes("OBT:" + "hru_cha_mod", "utf-8"))
     #     símismo.clientsocket.sendall(bytes(";", "utf-8"))
@@ -191,9 +198,10 @@ class ModeloSWATPlus(ModeloBF, ModeloEnchufe):
 
     def cerrar(símismo):
         # close model
-        símismo.clientsocket.sendall(b'FIN;')
-        símismo.proc.kill()
-        shutil.rmtree(símismo.direc_trabajo, ignore_errors=True)
+        if símismo.connectar:
+            símismo.clientsocket.sendall(b'FIN;')
+            símismo.proc.kill()
+            shutil.rmtree(símismo.direc_trabajo, ignore_errors=True)
 
     def cambiar_vals(símismo, valores):
         super().cambiar_vals(valores)
