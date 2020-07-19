@@ -15,11 +15,11 @@ def cliente(puerto):
         c.connect((HUÉSPED, puerto))
         while True:
             encab, cont = recibir(c)
-            tipo = encab['tipo']
-            if tipo == 'cerrar':
+            orden = encab['orden']
+            if orden == 'CERRAR':
                 break
 
-            elif tipo == 'cambiar':
+            elif orden == 'TOMARV':
                 var = encab['var']
                 matr = encab['matr']
                 if matr:
@@ -39,7 +39,7 @@ def cliente(puerto):
 
                 c.sendall(b'0')
             
-            elif tipo == 'leer':
+            elif orden == 'DAR___':
                 var = encab['var']
                 val = valores[var]
                 if isinstance(val, np.ndarray):
@@ -51,7 +51,7 @@ def cliente(puerto):
 
                 mandar(c, encab={'tamaño': len(val), 'matr': matr}, cont=val)
 
-            elif tipo == 'incr':
+            elif orden == 'CORRER':
                 n_pasos = encab['n_pasos']
                 for var, val in valores.items():
                     valores[var] = val + n_pasos
@@ -59,7 +59,7 @@ def cliente(puerto):
                 c.sendall(b'0')
 
             else:
-                raise ValueError(tipo)
+                raise ValueError(orden)
 
 
 def recibir(con):

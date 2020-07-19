@@ -55,61 +55,15 @@ class ModeloSWATPlus(ModeloBF, ModeloEnchufe):
 
     def incrementar(símismo, rebanada):
         if símismo.connectar:
-            msg = ""
             # Mandar los valores nuevas a SWATPlus
             for var in rebanada.resultados:
                 símismo.cambiar_var(var.var)
-                #símismo.clientsocket.sendall(bytes("TOMAR:" + str(símismo.dic_ingr[str(var)]["nombre"]) + ":" +
-                #                                   str(len(símismo.variables[str(var)]._val)) + ":" + str(
-                #    símismo.variables[str(var)]._val), "utf-8"))
-
-                #símismo.clientsocket.sendall(bytes(";", "utf-8"))
-
-                #while True:
-                 #   data = str(np.unicode(símismo.clientsocket.recv(1), errors='ignore'))
-                 #   msg += data
-                 #   if msg.__contains__("recvd"):
-                 #       msg = ""
-                #      data = ""
-                #        break
-                # only move on once a string is sent
 
             # Correr un paso de simulaccion
             símismo.incrementar(rebanada)
-            #símismo.clientsocket.sendall(bytes("CORR:" + str(rebanada.n_pasos), "utf-8"))
-            #símismo.clientsocket.sendall(bytes(";", "utf-8"))
-            #msg = ""
-            #while True:
-            #    data = str(np.unicode(símismo.clientsocket.recv(1), errors='ignore'))
-            #    msg += data
-            #    if msg.__contains__("running"):
-            #        msg = ""
-            #        data = ""
-            #        break
-            #print(msg)
 
             # Obtiene los valores de eso paso de la simulaccion
             for var in rebanada.resultados:
-                #símismo.clientsocket.sendall(bytes("OBT:" + str(símismo.dic_ingr[str(var)]["nombre"]), "utf-8"))
-                #símismo.clientsocket.sendall(bytes(";", "utf-8"))
-                #msg = ""
-                #while True:
-                #    data = str(np.unicode(símismo.clientsocket.recv(1), errors='ignore'))
-                #    msg += data
-                #    #print(msg)
-                #    if '[' not in msg:
-                #        msg = ""
-                #    elif msg.__contains__(";") and msg.__contains__("]"):
-                #        break
-                #split_msg = msg.split('[')
-                #if split_msg.__len__() != 1:
-                #    split_msg = split_msg[1].split("]")
-                #    split_msg = split_msg[0].split(" ")
-                #    nums = []
-                #    for i in range(len(split_msg)):
-                #        if símismo.isfloat(split_msg[i]):
-                #            nums.append(float(split_msg[i]))
-
                 símismo.variables[str(var)].poner_val(símismo.leer_var(var.var))
 
             super().incrementar(rebanada=rebanada)

@@ -4,6 +4,7 @@ from abc import abstractmethod
 from struct import pack
 
 import numpy as np
+from click import pause
 
 from tinamit.mod import Modelo
 
@@ -46,34 +47,58 @@ class ModeloEnchufe(Modelo):
 class Mensaje(object):
     def __init__(símismo, con, contenido=''):
         símismo.con = con
-        #------------------------------Made A Change Here---------------------------------------------------------------
         símismo.contenido = json.dumps((np.array(contenido).tolist()), ensure_ascii=False).encode('utf8')
 
     @property
-    def tipo(símismo):
+    def orden(símismo):
         raise NotImplementedError
 
     def _encabezado(símismo):
-        return {'tipo': símismo.tipo, 'tamaño': len(símismo.contenido)}
+        return {'orden': símismo.orden, 'tamaño': len(símismo.contenido)}
 
     def mandar(símismo):
         encabezado = símismo._encabezado()
         encabezado_bytes = json.dumps(encabezado, ensure_ascii=False).encode('utf8')
-
         # Mandar tmñ encabezado
-        símismo.con.sendall(pack('i', len(encabezado_bytes)))
-        if not símismo.con.recv(4) == 0:
+        #
+        símismo.con.sendall(len(encabezado_bytes).to_bytes(1, byteorder="big"))
+        print("Sent this pack: ", len(encabezado_bytes).to_bytes(1, byteorder="big"))
+
+        msg = ""
+        while len(msg) < 4:
+            data = str(np.unicode(símismo.con.recv(1), errors='ignore'))
+            msg += data
+            print("Current msg: ", msg)
+
+        if not msg == "RCVD":
             raise ConnectionError
 
         # Mandar encabezado json
         símismo.con.sendall(encabezado_bytes)
-        if not símismo.con.recv(4) == 0:
+        print("Encabezado bytes: ", encabezado_bytes)
+        msg = ""
+        while len(msg) < 4:
+            data = str(np.unicode(símismo.con.recv(1), errors='ignore'))
+            msg += data
+            print("Current msg: ", msg)
+
+        if not msg == "RCVD":
             raise ConnectionError
 
         # Mandar contenido
         if símismo.contenido:
 
             símismo.con.sendall(símismo.contenido)
+            print("Contenido to send: ", símismo.contenido)
+
+        msg = ""
+        while len(msg) < 4:
+            data = str(np.unicode(símismo.con.recv(1), errors='ignore'))
+            msg += data
+            print("Current msg: ", msg)
+
+        if not msg == "RCVD":
+            raise ConnectionError
 
         return símismo._procesar_respuesta()
 
@@ -82,7 +107,7 @@ class Mensaje(object):
 
 
 class MensajeCambiar(Mensaje):
-    tipo = 'cambiar'
+    orden = 'TOMAR_'
 
     def __init__(símismo, enchufe, variable, valor):
         símismo.variable = variable
@@ -110,13 +135,14 @@ class MensajeCambiar(Mensaje):
                 encab['tipo_cont'] = "flt"
             elif isinstance(val, str):
                 encab['tipo_cont'] = "str"
+                raise UserWarning("Currently string types are not supported in the modified SWAT+ model")
             else:
                 raise TypeError
         return encab
 
 
 class MensajeLeer(Mensaje):
-    tipo = 'leer'
+    orden = 'DAR___'
 
     def __init__(símismo, con, variable):
         símismo.variable = variable
@@ -140,7 +166,7 @@ class MensajeLeer(Mensaje):
 
 
 class MensajeIncrementar(Mensaje):
-    tipo = 'incr'
+    orden = 'CORRER'
 
     def __init__(símismo, enchufe, pasos):
         símismo.pasos = pasos
@@ -153,7 +179,7 @@ class MensajeIncrementar(Mensaje):
 
 
 class MensajeCerrar(Mensaje):
-    tipo = 'cerrar'
+    orden = 'CERRAR'
 
 
 class Recepción(object):
