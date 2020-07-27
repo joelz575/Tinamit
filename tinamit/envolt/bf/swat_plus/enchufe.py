@@ -4,7 +4,6 @@ from abc import abstractmethod
 from struct import pack
 
 import numpy as np
-from click import pause
 
 from tinamit.mod import Modelo
 

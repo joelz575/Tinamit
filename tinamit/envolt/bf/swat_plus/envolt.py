@@ -31,7 +31,7 @@ class ModeloSWATPlus(ModeloBF, ModeloEnchufe):
                 'https://github.com/julienmalard/sahysmod-sourcecode.'
             ))
 
-        símismo.HUÉSPED = '127.0.0.1'
+        símismo.HUÉSPED = socket.gethostbyname(socket.gethostname())
         símismo.archivo = archivo
         símismo.dic_ingr = {}
         símismo.dic_ingr = obt_info_vars(símismo.archivo)
@@ -77,7 +77,7 @@ class ModeloSWATPlus(ModeloBF, ModeloEnchufe):
             e.bind((símismo.HUÉSPED, 0))
             símismo.puerto = e.getsockname()[1]
             e.listen()
-            print(e.getsockname())
+            print("Socket name in python: ", e.getsockname())
             #símismo.direc_trabajo = tempfile.mkdtemp('_' + str(hash(corrida)))
             símismo.direc_trabajo = shutil.copytree(símismo.archivo, '_' + str(hash(corrida)))
             print(símismo.direc_trabajo)
