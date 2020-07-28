@@ -2,6 +2,7 @@ import json
 import socket
 from abc import abstractmethod
 from struct import pack
+import sys
 
 import numpy as np
 
@@ -56,30 +57,36 @@ class Mensaje(object):
         return {'orden': símismo.orden, 'tamaño': len(símismo.contenido)}
 
     def mandar(símismo):
+        print("IN MANDAR NOW")
         encabezado = símismo._encabezado()
         encabezado_bytes = json.dumps(encabezado, ensure_ascii=False).encode('utf8')
         # Mandar tmñ encabezado
         #
         símismo.con.sendall(len(encabezado_bytes).to_bytes(1, byteorder="big"))
-        print("Sent this pack: ", len(encabezado_bytes).to_bytes(1, byteorder="big"))
+        print("This size: ", len(encabezado_bytes).to_bytes(1, byteorder="big"))
+        sys.stdout.flush()
+        print("Sent this pack: ", encabezado_bytes)
+        sys.stdout.flush()
 
         msg = ""
         while len(msg) < 4:
             data = str(np.unicode(símismo.con.recv(1), errors='ignore'))
             msg += data
             print("Current msg: ", msg)
-
+            sys.stdout.flush()
         if not msg == "RCVD":
             raise ConnectionError
 
         # Mandar encabezado json
         símismo.con.sendall(encabezado_bytes)
         print("Encabezado bytes: ", encabezado_bytes)
+        sys.stdout.flush()
         msg = ""
         while len(msg) < 4:
             data = str(np.unicode(símismo.con.recv(1), errors='ignore'))
             msg += data
             print("Current msg: ", msg)
+            sys.stdout.flush()
 
         if not msg == "RCVD":
             raise ConnectionError
@@ -89,12 +96,14 @@ class Mensaje(object):
 
             símismo.con.sendall(símismo.contenido)
             print("Contenido to send: ", símismo.contenido)
+            sys.stdout.flush()
 
         msg = ""
         while len(msg) < 4:
             data = str(np.unicode(símismo.con.recv(1), errors='ignore'))
             msg += data
             print("Current msg: ", msg)
+            sys.stdout.flush()
 
         if not msg == "RCVD":
             raise ConnectionError
