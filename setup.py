@@ -11,7 +11,7 @@ def leer(arch):
 
 
 # Leer la versión de Tinamït
-versión = leer(os.path.join('tinamit', 'versión.txt'))
+version = leer(os.path.join('tinamit', 'versión.txt'))
 
 # Lo que sigue es código un poco complicado pero necesario para manejar las traducciones del código y de sus
 # mensajes al usuario. En gran parte, su necesidad es culpa del paquete Babel que no reconoce lenguas Mayas, entre
@@ -21,7 +21,7 @@ versión = leer(os.path.join('tinamit', 'versión.txt'))
 # Por fin, el código habitual de instalación.
 setup(
     name='tinamit',
-    version=versión,
+    version=version,
     packages=find_packages(),
     url='https://tinamit.readthedocs.io',
     download_url='https://github.com/julienmalard/Tinamit',
