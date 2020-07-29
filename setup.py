@@ -6,7 +6,8 @@ directorio = os.path.split(os.path.realpath(__file__))[0]
 
 
 def leer(arch):
-    with open(os.path.join(directorio, arch), encoding='UTF-8') as d:
+    with open(os.path.join(directorio, arch)#, encoding='UTF-8'
+    ) as d:
         return d.read().strip()
 
 
