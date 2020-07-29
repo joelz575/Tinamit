@@ -50,7 +50,7 @@ setup(
         'xarray',
         'chardet',
         'spotpy',
-        'ennikkai'
+        #'ennikkai'
     ],
     setup_requires=['Babel', 'polib'],
     zip_safe=False,
