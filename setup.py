@@ -44,7 +44,7 @@ setup(
         'lark-parser',
         'pint',
         'pyshp',
-        'taqdir',
+        #'taqdir',
         'pysd',
         'lxml',
         'xarray',
