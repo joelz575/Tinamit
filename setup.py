@@ -51,7 +51,7 @@ setup(
         'spotpy',
         'ennikkai'
     ],
-    setup_requires=['babel', 'polib'],
+    setup_requires=['Babel', 'polib'],
     zip_safe=False,
 
     classifiers=[
