@@ -31,7 +31,7 @@ class ModeloSWATPlus(ModeloBF, ModeloEnchufe):
                 'https://github.com/julienmalard/sahysmod-sourcecode.'
             ))
 
-        símismo.HUÉSPED = '127.0.0.1'
+        símismo.HUÉSPED = socket.gethostbyname(socket.gethostname())
         símismo.archivo = archivo
         símismo.dic_ingr = {}
         símismo.dic_ingr = obt_info_vars(símismo.archivo)
@@ -46,6 +46,7 @@ class ModeloSWATPlus(ModeloBF, ModeloEnchufe):
         # values assigned in símismo.deter_HRU_cha_mod() later
         símismo.connectar = connectar
         super().__init__(variablesMod, nombre)
+        print("DONE INIT")
 
     def escribir(símismo, archivo):
         return obt_info_vars(archivo)
@@ -54,6 +55,7 @@ class ModeloSWATPlus(ModeloBF, ModeloEnchufe):
         return 'días'
 
     def incrementar(símismo, rebanada):
+        print("IN INCREMENTAR")
         if símismo.connectar:
             # Mandar los valores nuevas a SWATPlus
             for var in rebanada.resultados:
@@ -67,6 +69,7 @@ class ModeloSWATPlus(ModeloBF, ModeloEnchufe):
                 símismo.variables[str(var)].poner_val(símismo.leer_var(var.var))
 
             super().incrementar(rebanada=rebanada)
+            print("DONE INCREMENTAR")
 
     def paralelizable(símismo):
         return True
@@ -77,7 +80,7 @@ class ModeloSWATPlus(ModeloBF, ModeloEnchufe):
             e.bind((símismo.HUÉSPED, 0))
             símismo.puerto = e.getsockname()[1]
             e.listen()
-            print(e.getsockname())
+            print("Socket name in python: ", e.getsockname())
             #símismo.direc_trabajo = tempfile.mkdtemp('_' + str(hash(corrida)))
             símismo.direc_trabajo = shutil.copytree(símismo.archivo, '_' + str(hash(corrida)))
             print(símismo.direc_trabajo)
@@ -93,14 +96,15 @@ class ModeloSWATPlus(ModeloBF, ModeloEnchufe):
             print("Done iniciar")
             símismo.con, puerto_recib = e.accept()
             símismo.proceso = símismo.iniciar_proceso()
-            símismo.deter_uso_de_tierra()
-            símismo.deter_HRU_cha_mod()
+            #símismo.deter_uso_de_tierra()
+            #símismo.deter_HRU_cha_mod()
         else:
             símismo.direc_trabajo = shutil.copytree(símismo.archivo, '_' + str(hash(corrida)))
             símismo.proc = subprocess.Popen(
                 [símismo.obt_conf('exe')],
                 cwd=símismo.direc_trabajo
             )
+        print("DONE INICIAR")
     def deter_HRU_cha_mod(símismo):
     #     símismo.clientsocket.sendall(bytes("OBT:" + "hru_cha_mod", "utf-8"))
     #     símismo.clientsocket.sendall(bytes(";", "utf-8"))
