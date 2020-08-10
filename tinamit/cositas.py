@@ -6,7 +6,7 @@ from datetime import datetime, date
 from warnings import warn as avisar
 
 import numpy as np
-from chardet import UniversalDetector
+from chardet.universaldetector import UniversalDetector
 
 
 def detectar_codif(archivo, máx_líneas=None, cortar=None):
