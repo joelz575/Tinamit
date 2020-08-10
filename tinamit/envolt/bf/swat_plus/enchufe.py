@@ -61,7 +61,6 @@ class Mensaje(object):
         encabezado = símismo._encabezado()
         encabezado_bytes = json.dumps(encabezado, ensure_ascii=False).encode('utf8')
         # Mandar tmñ encabezado
-        #
         símismo.con.sendall(len(encabezado_bytes).to_bytes(1, byteorder="big"))
         print("This size: ", len(encabezado_bytes).to_bytes(1, byteorder="big"))
         sys.stdout.flush()
@@ -91,23 +90,6 @@ class Mensaje(object):
         if not msg == "RCVD":
             raise ConnectionError
 
-        # Mandar contenido
-        if símismo.contenido:
-
-            símismo.con.sendall(símismo.contenido)
-            print("Contenido to send: ", símismo.contenido)
-            sys.stdout.flush()
-
-        msg = ""
-        while len(msg) < 4:
-            data = str(np.unicode(símismo.con.recv(1), errors='ignore'))
-            msg += data
-            print("Current msg: ", msg)
-            sys.stdout.flush()
-
-        if not msg == "RCVD":
-            raise ConnectionError
-
         return símismo._procesar_respuesta()
 
     def _procesar_respuesta(símismo):
@@ -126,6 +108,7 @@ class MensajeCambiar(Mensaje):
         encab['var'] = str(símismo.variable.código)
         encab['matr'] = ~(símismo.variable.obt_val().size <= 1)
         val = símismo.variable.obt_val()
+        encab['contenido'] = np.array(val).tolist()
         #-------------------------------------Made A Change Here--------------------------------------------------------
         if isinstance(val, np.ndarray):
             if np.issubdtype(val.dtype, np.int_):
