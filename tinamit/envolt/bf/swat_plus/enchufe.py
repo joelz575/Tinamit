@@ -72,6 +72,8 @@ class Mensaje(object):
             data = str(np.unicode(símismo.con.recv(1), errors='ignore'))
             msg += data
             print("Current msg: ", msg)
+            if msg == " ":
+                exit(-3)
             sys.stdout.flush()
         if not msg == "RCVD":
             raise ConnectionError
@@ -85,6 +87,8 @@ class Mensaje(object):
             data = str(np.unicode(símismo.con.recv(1), errors='ignore'))
             msg += data
             print("Current msg: ", msg)
+            if msg == " ":
+                exit(-3)
             sys.stdout.flush()
 
         if not msg == "RCVD":
@@ -108,7 +112,7 @@ class MensajeCambiar(Mensaje):
         encab['var'] = str(símismo.variable.código)
         encab['matr'] = ~(símismo.variable.obt_val().size <= 1)
         val = símismo.variable.obt_val()
-        encab['contenido'] = np.array(val).tolist()
+        #encab['contenido'] = np.array(val).tolist()
         #-------------------------------------Made A Change Here--------------------------------------------------------
         if isinstance(val, np.ndarray):
             if np.issubdtype(val.dtype, np.int_):
