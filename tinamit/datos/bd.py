@@ -1,4 +1,5 @@
 import os
+from warnings import warn as avisar
 
 import numpy as np
 import pandas as pd
@@ -12,6 +13,7 @@ class BD(object):
     """
     Una base de datos combina varias :class:`~tinamit.datos.fuente.Fuente`.
     """
+
     def __init__(símismo, fuentes):
         """
 
@@ -24,8 +26,16 @@ class BD(object):
         símismo.fuentes = [_gen_fuente(f) for f in fuentes]
         símismo.variables = list(set((v for f in símismo.fuentes for v in f.variables)))
 
-        símismo.lugares = np.unique(np.concatenate([np.unique(fnt.lugares) for fnt in símismo.fuentes]))
-        símismo.fechas = np.unique(np.concatenate([np.unique(fnt.fechas) for fnt in símismo.fuentes]))
+        símismo.lugares = np.unique(
+            np.concatenate([np.unique(fnt.lugares) for fnt in símismo.fuentes if fnt.lugares is not None])
+        )
+        fechas = [np.unique(fnt.fechas) for fnt in símismo.fuentes if fnt.fechas is not None]
+        if fechas:
+            símismo.fechas = np.unique(
+                np.concatenate(fechas)
+            )
+        else:
+            símismo.fechas = fechas
 
     def obt_vals(símismo, vars_interés=None, lugares=None, fechas=None):
         """
@@ -55,8 +65,11 @@ class BD(object):
         l_vals_fnts = [
             f.obt_vals(vars_interés=vars_interés, lugares=lugares, fechas=fechas) for f in símismo.fuentes
         ]
-        l_vals_fnts = [v for v in l_vals_fnts if v.data_vars]
-        vals = xr.merge(l_vals_fnts)
+        l_vals_fnts = [v for v in l_vals_fnts if len(v.columns)]
+        vals = l_vals_fnts[0]
+        for vl in l_vals_fnts[1:]:
+            nuevas_cols = [cl for cl in vl.columns if cl not in vals.columns]
+            vals = vals.join(vl[nuevas_cols], how='outer').fillna(vl)
 
         return vals[vars_interés[0]] if vr_único else vals
 
@@ -82,12 +95,12 @@ class BD(object):
         """
 
         datos = símismo.obt_vals(vars_interés=vars_interés, lugares=lugares)
-        if datos['n'].size:
+        if datos.size:
             datos = _interpolar_xr(datos, fechas=fechas)
 
             if extrap:
-                datos = datos.bfill(_('fecha'))
-                datos = datos.ffill(_('fecha'))
+                datos = datos.fillna(method='bfill')
+                datos = datos.fillna(method='ffill')
 
             return datos
 
@@ -117,7 +130,14 @@ def _gen_fuente(fnt, nombre=None, lugares=None, fechas=None):
 
 
 def _interpolar_xr(m, fechas=None):
-    m = m.unstack()
+    if fechas is not None:
+        raise ValueError
+    interpolado = m.unstack().interpolate(limit_area='inside').stack()
+    if len(interpolado.dropna()):
+        return interpolado
+    avisar('Extrapolando por falta de datos.')
+    return m.unstack().interpolate().stack()
+
     if m.sizes[_('fecha')] > 1:
 
         m = m.interpolate_na(_('fecha')).fillna(m)

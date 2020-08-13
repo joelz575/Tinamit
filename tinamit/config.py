@@ -67,7 +67,7 @@ class Config(OpsConfig):
 
         auto.update(val_arch)
 
-        super().__init__(pariente=None, valores=auto)
+        super().__init__(pariente=None,valores=auto)
         try:
             símismo.guardar()
         except OSError:

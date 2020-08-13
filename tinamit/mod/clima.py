@@ -1,8 +1,10 @@
+import numpy as np
 import pandas as pd
 import xarray as xr
 from tinamit.config import _
-from تقدیر.مقام import مقام
 from tinamit.tiempo.tiempo import TiempoCalendario
+from تقدیر.ذریعہ import ذریعہ
+from تقدیر.مقام import مقام
 
 
 class Clima(object):
@@ -58,7 +60,8 @@ class Clima(object):
 
     def _obt_datos_de_taqdir(símismo, f_inic, f_final):
         return símismo._lugar.کوائف_پانا(
-            f_inic, f_final, ذرائع=(símismo.fuentes,), خاکے=símismo.escenario
+            f_inic, f_final, ذرائع=(símismo.fuentes,) if isinstance(símismo.fuentes, ذریعہ) else símismo.fuentes,
+            خاکے=símismo.escenario
         ).روزانہ()
 
     def obt_datos(símismo, f_inic, f_final=None):
@@ -85,12 +88,12 @@ class Clima(object):
             datos_vr = datos[d['nombre_tqdr']]
             combin = d['combin']
             conv = d['conv']
-            eje = t.eje()
-            datos_t = [
+            datos_t = np.array([
                 combin(
-                    datos_vr[(datos_vr['date'] < f) & (datos_vr['date'] <= eje[i + 1])]
-                ) if combin is not None else datos_vr[f] for i, f in enumerate(eje[:-1])
-            ]
+                    datos_vr[(datos_vr.index.to_timestamp() > f) & (datos_vr.index.to_timestamp() <= t[i + 1])]
+                ) if combin is not None else datos_vr[f] for i, f in enumerate(t[:-1])
+            ])
 
-            vals[v] = xr.DataArray(datos_t * conv, coords={_('fecha'): t}, dims=[_('fecha')])
+            vals[v] = xr.DataArray(datos_t * conv, coords={_('fecha'): t[:-1]}, name=v,
+                                   dims=[_('fecha')]).to_dataframe()[v]
         return vals

@@ -153,7 +153,7 @@ class TiempoCalendario(Tiempo):
             return eje
         return pd.date_range(
             símismo.f_inic, periods=símismo.n_pasos // símismo.guardar_cada + 1,
-            freq=str(paso) + _a_unid_pandas[símismo.unid_paso]
+            freq=str(paso) + _a_unid_pandas[símismo.unid_paso] + 'S'
         )
 
     def pasos_avanzados(símismo, unid):
@@ -261,7 +261,7 @@ a_unid_ft = {
 }
 
 _a_unid_pandas = {
-    'año': 'Y',
+    'año': 'A',
     'mes': 'M',
     'día': 'D',
     'hora': 'H',

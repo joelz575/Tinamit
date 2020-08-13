@@ -54,7 +54,7 @@ class Modelo(object):
 
         raise NotImplementedError
 
-    def simular(símismo, t: object, nombre: object = 'Tinamït', extern: object = None, clima: object = None, vars_interés: object = None) -> object:
+    def simular(símismo, t, nombre='Tinamït', extern=None, clima=None, vars_interés=None):
         """
         
         Parameters
@@ -165,7 +165,7 @@ class Modelo(object):
             t = símismo.corrida.t
             corrida.clima.inicializar(t)
             símismo._act_vals_clima(
-                t.fecha(), t.fecha_próxima() - 1 * t.fecha().freq
+                t.fecha(), t.fecha_próxima() - ft.timedelta(1)  # Para hacer: frequencias distintas
             )
         corrida.actualizar_res()
 
@@ -178,7 +178,7 @@ class Modelo(object):
         if intento is not None:
             símismo.corrida.resultados.poner_vals_t(intento)
         else:
-            while símismo.corrida.t.avanzar():
+            while símismo.corrida.t.incrementar():
                 símismo.incrementar(
                     Rebanada(
                         símismo.corrida.t.pasos_avanzados(símismo.unidad_tiempo()),
@@ -213,11 +213,13 @@ class Modelo(object):
 
         """
         if símismo.corrida.extern:
-            símismo.cambiar_vals(símismo.corrida.obt_extern_act())
+            símismo.cambiar_vals({
+                vr: vl for vr, vl in símismo.corrida.obt_extern_act().items() if vr in símismo.variables
+            })
 
         if símismo.corrida.clima and símismo.vars_clima:
             t = símismo.corrida.t
-            símismo._act_vals_clima(t.fecha(), t.fecha_próxima() - 1 * t.fecha().freq)
+            símismo._act_vals_clima(t.fecha(), t.fecha_próxima() - ft.timedelta(days=1))
 
     def cerrar(símismo):
         """
@@ -347,8 +349,8 @@ class Modelo(object):
         """
 
         combins = {
-            'prom': np.mean,
-            'total': np.sum
+            'prom': np.nanmean,
+            'suma': np.nansum
         }
         if isinstance(combin, str):
             combin = combins[combin.lower()]
