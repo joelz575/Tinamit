@@ -57,7 +57,6 @@ class Mensaje(object):
         return {'orden': símismo.orden, 'tamaño': len(símismo.contenido)}
 
     def mandar(símismo):
-        print("IN MANDAR NOW")
         encabezado = símismo._encabezado()
         encabezado_bytes = json.dumps(encabezado, ensure_ascii=False).encode('utf8')
         # Mandar tmñ encabezado
