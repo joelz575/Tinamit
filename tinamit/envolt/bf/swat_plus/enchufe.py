@@ -62,17 +62,16 @@ class Mensaje(object):
         encabezado_bytes = json.dumps(encabezado, ensure_ascii=False).encode('utf8')
         # Mandar tmñ encabezado
         símismo.con.sendall(len(encabezado_bytes).to_bytes(1, byteorder="big"))
-        print("This size: ", len(encabezado_bytes).to_bytes(1, byteorder="big"))
+        print("This size: ", len(encabezado_bytes))
         sys.stdout.flush()
-        print("Sent this pack: ", encabezado_bytes)
-        sys.stdout.flush()
+
 
         msg = ""
         while len(msg) < 4:
             data = str(np.unicode(símismo.con.recv(1), errors='ignore'))
             msg += data
             print("Current msg: ", msg)
-            if msg == " ":
+            if msg == "":
                 exit(-3)
             sys.stdout.flush()
         if not msg == "RCVD":
@@ -87,7 +86,23 @@ class Mensaje(object):
             data = str(np.unicode(símismo.con.recv(1), errors='ignore'))
             msg += data
             print("Current msg: ", msg)
-            if msg == " ":
+            if msg == "":
+                exit(-3)
+            sys.stdout.flush()
+
+        if not msg == "RCVD":
+            raise ConnectionError
+
+        # Mandar contenido json
+        símismo.con.sendall(símismo.contenido)
+        print("Contenido bytes: ", símismo.contenido)
+        sys.stdout.flush()
+        msg = ""
+        while len(msg) < 4:
+            data = str(np.unicode(símismo.con.recv(1), errors='ignore'))
+            msg += data
+            print("Current msg: ", msg)
+            if msg == "":
                 exit(-3)
             sys.stdout.flush()
 
@@ -112,7 +127,7 @@ class MensajeCambiar(Mensaje):
         encab['var'] = str(símismo.variable.código)
         encab['matr'] = ~(símismo.variable.obt_val().size <= 1)
         val = símismo.variable.obt_val()
-        #encab['contenido'] = np.array(val).tolist()
+
         #-------------------------------------Made A Change Here--------------------------------------------------------
         if isinstance(val, np.ndarray):
             if np.issubdtype(val.dtype, np.int_):
