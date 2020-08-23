@@ -12,8 +12,8 @@ def obt_info_vars(archivo):
         #'Unidades_de_paisaje'
         #'HRU_manejo_de_tierra': {'código': 'hru%lumv'}
         #'HRU_uso_de_tierra': {'código': 'hrulus', 'unid': 'key', 'ingr': True, 'egr': False, 'val': []},
-        'Algas': {'código': 'algaes', 'unid': 'mg/L', 'ingr': False, 'egr': True, 'val': 2},
-        'Fluir_a_canal': {'código': 'flwinc', 'unid': 'ha*m', 'ingr': False,
+        'Algas': {'código': 'algae', 'unid': 'mg/L', 'ingr': False, 'egr': True, 'val': 2},
+        'Fluir_a_canal': {'código': 'flwin', 'unid': 'ha*m', 'ingr': False,
             'egr': True, 'val': 0},
         'Lluvia': {'código': 'Lluvia', 'unid': 'm*m*m/mes', 'ingr': True, 'egr': True, 'val': 200},
         'Bosques': {'código': 'Bosque', 'unid': 'm*m', 'ingr': True, 'egr': True, 'val': 200}

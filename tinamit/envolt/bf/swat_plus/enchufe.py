@@ -62,7 +62,7 @@ class Mensaje(object):
         encabezado_bytes = json.dumps(encabezado, ensure_ascii=False).encode('utf8')
         # Mandar tmñ encabezado
         símismo.con.sendall(len(encabezado_bytes).to_bytes(1, byteorder="big"))
-        print("This size: ", len(encabezado_bytes))
+        print("Letting C know this size: ", len(encabezado_bytes))
         sys.stdout.flush()
 
 
