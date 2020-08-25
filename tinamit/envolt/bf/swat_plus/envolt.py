@@ -60,10 +60,10 @@ class ModeloSWATPlus(ModeloBF, ModeloEnchufe):
             # Mandar los valores nuevas a SWATPlus
             for var in rebanada.resultados:
                 símismo.cambiar_var(var.var)
-
+            print("Are we done with the variables now?")
             # Correr un paso de simulaccion
-            símismo.incrementar(rebanada)
-
+            #símismo.incrementar(rebanada)
+            #print("done with s")
             # Obtiene los valores de eso paso de la simulaccion
             for var in rebanada.resultados:
                 símismo.variables[str(var)].poner_val(símismo.leer_var(var.var))
