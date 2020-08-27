@@ -197,16 +197,19 @@ class Recepción(object):
         símismo.con = con
 
     def recibir(símismo):
-        tmñ = símismo.con.recv(4)
-        encabezado = json.loads(símismo.con.recv(tmñ).decode('utf8'))
-        contenido = símismo.con.recv(encabezado['tamaño'])
-        return símismo._procesar(encabezado, contenido)
+            tmñ = símismo.con.recv(4).decode('utf-8')
+            print("Tamano: ", tmñ)
+            contenido = símismo.con.recv(int(tmñ)).decode('utf8')
+            return símismo._procesar(contenido)
 
-    def _procesar(símismo, encabezado, contenido):
+    def _procesar(símismo, contenido):
         raise NotImplementedError
 
 
 class RecepciónVariable(Recepción):
 
-    def _procesar(símismo, encabezado, contenido):
-        return np.frombuffer(contenido)
+    def _procesar(símismo, contenido):
+        try:
+            return np.frombuffer(contenido)
+        except TypeError as e:
+            return np.fromstring('0', dtype=int, sep=' ')
