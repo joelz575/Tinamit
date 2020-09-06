@@ -46,7 +46,7 @@ class ModeloEnchufe(ModeloBF):
             try:
                 símismo.con.close()
             finally:
-                MensajeCerrar().mandar()
+                MensajeCerrar(símismo.con).mandar()
                 if símismo.proceso.poll() is None:
                     avisar(_(
                         'Proceso de modelo {} todavía estaba corriendo al final de la simulación.'
