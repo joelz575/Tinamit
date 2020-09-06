@@ -41,7 +41,7 @@ class ModeloEnchufe(ModeloBF):
 
     def cerrar(símismo):
         try:
-            símismo._enchufe.close()
+            símismo.enchufe.close()
         finally:
             try:
                 símismo.con.close()
