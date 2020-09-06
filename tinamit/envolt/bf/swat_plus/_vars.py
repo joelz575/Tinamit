@@ -21,6 +21,10 @@ def obt_info_vars(archivo):
         'Bosques': {'código': 'Bosque', 'unid': 'm*m', 'ingr': True, 'egr': True, 'val': [200]}
 }
 
+
+def obt_test_vars():
+    return obt_info_vars('')
+
 # management schedule of hru
 # landuse of hru
 # nutrient in rivers
