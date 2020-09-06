@@ -63,7 +63,7 @@ class ModeloSWATPlus(ModeloEnchufe):
             print("Are we done with the variables now?")
 
             # Correr un paso de simulaccion
-            símismo.incrementar(rebanada)
+            símismo.incrementarProceso(rebanada.n_pasos)
             print("done with s")
 
             # Obtiene los valores de eso paso de la simulaccion

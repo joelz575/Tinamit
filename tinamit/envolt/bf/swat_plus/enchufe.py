@@ -35,26 +35,22 @@ class ModeloEnchufe(ModeloBF):
         val = MensajeLeer(símismo.con, var).mandar()
         return val
 
-    def incrementar(símismo, rbnd):
-        for paso in rbnd:
-            MensajeIncrementar(símismo.con, pasos=paso.n_pasos).mandar()
+    def incrementar(símismo, rebanada):
+        super().incrementar(rebanada)
+
+    def incrementarProceso(símismo, n_pasos):
+        MensajeIncrementar(símismo.con, pasos=n_pasos).mandar()
 
     def cerrar(símismo):
+        MensajeCerrar(símismo.con).mandar()
         try:
-            símismo.enchufe.close()
+            símismo.con.close()
         finally:
-            try:
-                símismo.con.close()
-            finally:
-                MensajeCerrar(símismo.con).mandar()
-                if símismo.proceso.poll() is None:
-                    avisar(_(
-                        'Proceso de modelo {} todavía estaba corriendo al final de la simulación.'
-                    ).format(símismo))
-                    símismo.proceso.kill()
+            símismo.enchufe.close()
+        símismo.activo = False
 
     def finalizar(símismo):
-        símismo.incrementar(0)
+        símismo.incrementarProceso(0)
 
     def __enter__(símismo):
         return símismo
