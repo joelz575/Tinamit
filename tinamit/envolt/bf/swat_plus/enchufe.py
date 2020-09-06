@@ -1,16 +1,25 @@
 import json
 import socket
 from abc import abstractmethod
-from struct import pack
 import sys
-import time
-
 import numpy as np
+from tinamit.envolt.bf._envolt import ModeloBF
 
-from tinamit.mod import Modelo
 
+class ModeloEnchufe(ModeloBF):
+    def __init__(símismo, dirección='127.0.0.1', puerto=0, variablesMod=[], nombre="enchufe"):
+        símismo.enchufe = enchf = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        enchf.bind((dirección, puerto))
+        símismo.dirección, símismo.puerto = enchf.getsockname()
+        enchf.listen()
+        símismo.activo = False
+        símismo.con = None
+        super().__init__(variablesMod, nombre)
 
-class ModeloEnchufe(Modelo):
+    def activar(símismo):
+        símismo.con, dir_ = símismo.enchufe.accept()
+        símismo.activo = True
+
     @property
     def unids(símismo):
         raise NotImplementedError
@@ -44,6 +53,15 @@ class ModeloEnchufe(Modelo):
                     ).format(símismo))
                     símismo.proceso.kill()
 
+    def finalizar(símismo):
+        símismo.incrementar(0)
+
+    def __enter__(símismo):
+        return símismo
+
+    def __exit__(símismo, *args):
+        if símismo.activo:
+            símismo.cerrar()
 
 class Mensaje(object):
     def __init__(símismo, con, contenido=''):
