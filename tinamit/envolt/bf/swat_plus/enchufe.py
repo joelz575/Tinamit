@@ -97,12 +97,6 @@ class Mensaje(object):
                 exit(-3)
             sys.stdout.flush()
         if not msg == "RCVD":
-            if msg == "SWAT":
-                for i in range(100):
-                    data = str(np.unicode(símismo.con.recv(1), errors='ignore'))
-                    msg += data
-                    print("received: ", msg)
-
             raise ConnectionError
 
         # Mandar encabezado json
