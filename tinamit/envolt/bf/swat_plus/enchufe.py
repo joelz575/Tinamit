@@ -3,6 +3,7 @@ import socket
 from abc import abstractmethod
 from struct import pack
 import sys
+import time
 
 import numpy as np
 
@@ -54,7 +55,10 @@ class Mensaje(object):
         raise NotImplementedError
 
     def _encabezado(símismo):
-        return {'orden': símismo.orden, 'tamaño': len(símismo.contenido)}
+        if símismo.orden is "TOMAR_":
+            return {'orden': símismo.orden, 'tamaño': len(símismo.contenido)}
+        else:
+            return {'orden': símismo.orden}
 
     def mandar(símismo):
         print("IN MANDAR NOW")
@@ -75,6 +79,12 @@ class Mensaje(object):
                 exit(-3)
             sys.stdout.flush()
         if not msg == "RCVD":
+            if msg == "SWAT":
+                for i in range(100):
+                    data = str(np.unicode(símismo.con.recv(1), errors='ignore'))
+                    msg += data
+                    print("received: ", msg)
+
             raise ConnectionError
 
         # Mandar encabezado json
@@ -107,6 +117,7 @@ class Mensaje(object):
             sys.stdout.flush()
 
         if not msg == "RCVD":
+
             raise ConnectionError
 
         return símismo._procesar_respuesta()
@@ -200,6 +211,7 @@ class Recepción(object):
             tmñ = símismo.con.recv(4).decode('utf-8')
             print("Tamano: ", tmñ)
             contenido = símismo.con.recv(int(tmñ)).decode('utf8')
+            print("Contenido: ", contenido)
             return símismo._procesar(contenido)
 
     def _procesar(símismo, contenido):
