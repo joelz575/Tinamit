@@ -3,7 +3,7 @@ import socket
 from abc import abstractmethod
 import sys
 import numpy as np
-from tinamit.envolt.bf._envolt import ModeloBF
+from tinamit.envolt.bf import ModeloBF
 
 
 class ModeloEnchufe(ModeloBF):
