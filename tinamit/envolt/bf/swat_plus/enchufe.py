@@ -111,22 +111,22 @@ class Mensaje(object):
         if not msg == "RCVD":
             raise ConnectionError
 
-        # Mandar contenido json
-        símismo.con.sendall(símismo.contenido)
-        print("Contenido bytes: ", símismo.contenido)
-        sys.stdout.flush()
-        msg = ""
-        while len(msg) < 4:
-            data = str(np.unicode(símismo.con.recv(1), errors='ignore'))
-            msg += data
-            print("Current msg: ", msg)
-            if msg == "":
-                exit(-3)
+        if símismo.orden is "TOMAR_":
+            # Mandar contenido json
+            símismo.con.sendall(símismo.contenido)
+            print("Contenido bytes: ", símismo.contenido)
             sys.stdout.flush()
+            msg = ""
+            while len(msg) < 4:
+                data = str(np.unicode(símismo.con.recv(1), errors='ignore'))
+                msg += data
+                print("Current msg: ", msg)
+                if msg == "":
+                    exit(-3)
+                sys.stdout.flush()
 
-        if not msg == "RCVD":
-
-            raise ConnectionError
+            if not msg == "RCVD":
+                raise ConnectionError
 
         return símismo._procesar_respuesta()
 
