@@ -67,14 +67,38 @@ class Mensaje(object):
         encabezado_bytes = json.dumps(encabezado, ensure_ascii=False).encode('utf8')
 
         # Mandar tmñ encabezado
+        print("encabezado_bytes", encabezado_bytes)
         símismo.conex.sendall(pack('i', len(encabezado_bytes)))
 
         # Mandar encabezado json
         símismo.conex.sendall(encabezado_bytes)
 
+        # Revisar que el modelo recibe los encabezado_bytes
+        msg = ""
+        while len(msg) < 4:
+            data = str(np.unicode(símismo.conex.recv(1), errors='ignore'))
+            msg += data
+            print("Current msg: ", msg)
+            if msg == "":
+                break
+
+        if not msg == "RCVD":
+            raise ConnectionError
+
         # Mandar contenido
         if símismo.contenido:
             símismo.conex.sendall(símismo.contenido)
+
+        # Revisar que el modelo recibe los encabezado_bytes
+        while len(msg) < 4:
+            data = str(np.unicode(símismo.conex.recv(1), errors='ignore'))
+            msg += data
+            print("Current msg: ", msg)
+            if msg == "":
+                break
+
+        if not msg == "RCVD":
+            raise ConnectionError
 
         return símismo._procesar_respuesta()
 
@@ -144,16 +168,31 @@ class Recepción(object):
     def recibir(símismo):
         tmñ = unpack('i', símismo.con.recv(4))[0]
 
-        encabezado = json.loads(símismo.con.recv(tmñ).decode('utf8'))
+        contenidoString = símismo.con.recv(int(tmñ)).decode('utf8')
+        try:
+            encabezado = json.loads(contenidoString)
 
-        contenido = símismo.con.recv(encabezado['tamaño'])
+            contenido = símismo.con.recv(encabezado['tamaño'])
 
-        return símismo._procesar(encabezado, contenido)
+            return símismo._procesar(contenido, encabezado=encabezado)
 
-    def _procesar(símismo, encabezado, contenido):
+        except Exception:
+            contenido = contenidoString
+
+            return símismo._procesar(contenido)
+
+
+
+    def _procesar(símismo, contenido, encabezado= ''):
         raise NotImplementedError
 
 
 class RecepciónVariable(Recepción):
-    def _procesar(símismo, encabezado, contenido):
-        return np.frombuffer(contenido, dtype=encabezado['tipo_cont']).reshape(encabezado['forma'])
+    def _procesar(símismo,  contenido, encabezado=''):
+        if encabezado is not '':
+            return np.frombuffer(contenido, dtype=encabezado['tipo_cont']).reshape(encabezado['forma'])
+        else:
+            try:
+                return np.frombuffer(contenido)
+            except TypeError as e:
+                return np.fromstring('0', dtype=int, sep=' ')

@@ -16,7 +16,8 @@ class PruebaIDM(TestCase):
         símismo.clientes = []
 
     def _empezar_cliente(símismo, dirección, puerto):
-        cliente= Popen([sys.executable, "ejemplo_cliente.py", dirección, str(puerto), str(t_final)])
+        cliente = Popen(["/home/joelz/PycharmProjects/swatplus/build/bin/swatplus_exe", str(puerto), dirección],
+                        cwd="/home/joelz/PycharmProjects/swatplus/Trial Robit/Scenarios/Default/TxtInOut")
         símismo.clientes.append(cliente)
         return cliente
 

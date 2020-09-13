@@ -1,15 +1,25 @@
 import json
 import socket
 from abc import abstractmethod
-from struct import pack
 import sys
-
 import numpy as np
+from tinamit.envolt.bf import ModeloBF
 
-from tinamit.mod import Modelo
 
+class ModeloEnchufe(ModeloBF):
+    def __init__(símismo, dirección='127.0.0.1', puerto=0, variablesMod=[], nombre="enchufe"):
+        símismo.enchufe = enchf = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        enchf.bind((dirección, puerto))
+        símismo.dirección, símismo.puerto = enchf.getsockname()
+        enchf.listen()
+        símismo.activo = False
+        símismo.con = None
+        super().__init__(variablesMod, nombre)
 
-class ModeloEnchufe(Modelo):
+    def activar(símismo):
+        símismo.con, dir_ = símismo.enchufe.accept()
+        símismo.activo = True
+
     @property
     def unids(símismo):
         raise NotImplementedError
@@ -25,24 +35,29 @@ class ModeloEnchufe(Modelo):
         val = MensajeLeer(símismo.con, var).mandar()
         return val
 
-    def incrementar(símismo, rbnd):
-        for paso in rbnd:
-            MensajeIncrementar(símismo.con, pasos=paso.n_pasos).mandar()
+    def incrementar(símismo, rebanada):
+        super().incrementar(rebanada)
+
+    def incrementarProceso(símismo, n_pasos):
+        MensajeIncrementar(símismo.con, pasos=n_pasos).mandar()
 
     def cerrar(símismo):
+        MensajeCerrar(símismo.con).mandar()
         try:
-            símismo._enchufe.close()
+            símismo.con.close()
         finally:
-            try:
-                símismo.con.close()
-            finally:
-                MensajeCerrar().mandar()
-                if símismo.proceso.poll() is None:
-                    avisar(_(
-                        'Proceso de modelo {} todavía estaba corriendo al final de la simulación.'
-                    ).format(símismo))
-                    símismo.proceso.kill()
+            símismo.enchufe.close()
+        símismo.activo = False
 
+    def finalizar(símismo):
+        símismo.incrementarProceso(0)
+
+    def __enter__(símismo):
+        return símismo
+
+    def __exit__(símismo, *args):
+        if símismo.activo:
+            símismo.cerrar()
 
 class Mensaje(object):
     def __init__(símismo, con, contenido=''):
@@ -54,24 +69,27 @@ class Mensaje(object):
         raise NotImplementedError
 
     def _encabezado(símismo):
-        return {'orden': símismo.orden, 'tamaño': len(símismo.contenido)}
+        if símismo.orden is "TOMAR_":
+            return {'orden': símismo.orden, 'tamaño': len(símismo.contenido)}
+        else:
+            return {'orden': símismo.orden}
 
     def mandar(símismo):
+        print("IN MANDAR NOW")
         encabezado = símismo._encabezado()
         encabezado_bytes = json.dumps(encabezado, ensure_ascii=False).encode('utf8')
         # Mandar tmñ encabezado
         símismo.con.sendall(len(encabezado_bytes).to_bytes(1, byteorder="big"))
-        print("This size: ", len(encabezado_bytes).to_bytes(1, byteorder="big"))
+        print("Letting C know this size: ", len(encabezado_bytes))
         sys.stdout.flush()
-        print("Sent this pack: ", encabezado_bytes)
-        sys.stdout.flush()
+
 
         msg = ""
         while len(msg) < 4:
             data = str(np.unicode(símismo.con.recv(1), errors='ignore'))
             msg += data
             print("Current msg: ", msg)
-            if msg == " ":
+            if msg == "":
                 exit(-3)
             sys.stdout.flush()
         if not msg == "RCVD":
@@ -86,12 +104,29 @@ class Mensaje(object):
             data = str(np.unicode(símismo.con.recv(1), errors='ignore'))
             msg += data
             print("Current msg: ", msg)
-            if msg == " ":
+            if msg == "":
                 exit(-3)
             sys.stdout.flush()
 
         if not msg == "RCVD":
             raise ConnectionError
+
+        if símismo.orden is "TOMAR_":
+            # Mandar contenido json
+            símismo.con.sendall(símismo.contenido)
+            print("Contenido bytes: ", símismo.contenido)
+            sys.stdout.flush()
+            msg = ""
+            while len(msg) < 4:
+                data = str(np.unicode(símismo.con.recv(1), errors='ignore'))
+                msg += data
+                print("Current msg: ", msg)
+                if msg == "":
+                    exit(-3)
+                sys.stdout.flush()
+
+            if not msg == "RCVD":
+                raise ConnectionError
 
         return símismo._procesar_respuesta()
 
@@ -111,7 +146,7 @@ class MensajeCambiar(Mensaje):
         encab['var'] = str(símismo.variable.código)
         encab['matr'] = ~(símismo.variable.obt_val().size <= 1)
         val = símismo.variable.obt_val()
-        #encab['contenido'] = np.array(val).tolist()
+
         #-------------------------------------Made A Change Here--------------------------------------------------------
         if isinstance(val, np.ndarray):
             if np.issubdtype(val.dtype, np.int_):
@@ -181,16 +216,20 @@ class Recepción(object):
         símismo.con = con
 
     def recibir(símismo):
-        tmñ = símismo.con.recv(4)
-        encabezado = json.loads(símismo.con.recv(tmñ).decode('utf8'))
-        contenido = símismo.con.recv(encabezado['tamaño'])
-        return símismo._procesar(encabezado, contenido)
+            tmñ = símismo.con.recv(4).decode('utf-8')
+            print("Tamano: ", tmñ)
+            contenido = símismo.con.recv(int(tmñ)).decode('utf8')
+            print("Contenido: ", contenido)
+            return símismo._procesar(contenido)
 
-    def _procesar(símismo, encabezado, contenido):
+    def _procesar(símismo, contenido):
         raise NotImplementedError
 
 
 class RecepciónVariable(Recepción):
 
-    def _procesar(símismo, encabezado, contenido):
-        return np.frombuffer(contenido)
+    def _procesar(símismo, contenido):
+        try:
+            return np.frombuffer(contenido)
+        except TypeError as e:
+            return np.fromstring('0', dtype=int, sep=' ')
