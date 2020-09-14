@@ -74,31 +74,14 @@ class Mensaje(object):
         símismo.conex.sendall(encabezado_bytes)
 
         # Revisar que el modelo recibe los encabezado_bytes
-        msg = ""
-        while len(msg) < 4:
-            data = str(np.unicode(símismo.conex.recv(1), errors='ignore'))
-            msg += data
-            print("Current msg: ", msg)
-            if msg == "":
-                break
 
-        if not msg == "RCVD":
-            raise ConnectionError
 
         # Mandar contenido
         if símismo.contenido:
             símismo.conex.sendall(símismo.contenido)
 
         # Revisar que el modelo recibe los encabezado_bytes
-        while len(msg) < 4:
-            data = str(np.unicode(símismo.conex.recv(1), errors='ignore'))
-            msg += data
-            print("Current msg: ", msg)
-            if msg == "":
-                break
 
-        if not msg == "RCVD":
-            raise ConnectionError
 
         return símismo._procesar_respuesta()
 
@@ -168,18 +151,11 @@ class Recepción(object):
     def recibir(símismo):
         tmñ = unpack('i', símismo.con.recv(4))[0]
 
-        contenidoString = símismo.con.recv(int(tmñ)).decode('utf8')
-        try:
-            encabezado = json.loads(contenidoString)
+        encabezado = json.loads(símismo.con.recv(int(tmñ)).decode('utf8'))
 
-            contenido = símismo.con.recv(encabezado['tamaño'])
+        contenido = símismo.con.recv(encabezado['tamaño'])
 
-            return símismo._procesar(contenido, encabezado=encabezado)
-
-        except Exception:
-            contenido = contenidoString
-
-            return símismo._procesar(contenido)
+        return símismo._procesar(contenido, encabezado)
 
 
 
@@ -188,11 +164,6 @@ class Recepción(object):
 
 
 class RecepciónVariable(Recepción):
-    def _procesar(símismo,  contenido, encabezado=''):
-        if encabezado is not '':
-            return np.frombuffer(contenido, dtype=encabezado['tipo_cont']).reshape(encabezado['forma'])
-        else:
-            try:
-                return np.frombuffer(contenido)
-            except TypeError as e:
-                return np.fromstring('0', dtype=int, sep=' ')
+    def _procesar(símismo,  contenido, encabezado):
+
+        return np.frombuffer(contenido, dtype=encabezado['tipo_cont']).reshape(encabezado['forma'])
