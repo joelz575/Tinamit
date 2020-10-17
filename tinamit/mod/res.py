@@ -1,10 +1,13 @@
 import csv
+import os
 
 import numpy as np
 import xarray as xr
-
+from matplotlib.backends.backend_agg import FigureCanvasAgg as TelaFigura
+from matplotlib.figure import Figure as Figura
 from tinamit.config import _
-from tinamit.cositas import valid_nombre_arch, guardar_json
+from tinamit.cositas import valid_nombre_arch, guardar_json, jsonificar
+
 from .var import Variable
 
 
@@ -33,7 +36,7 @@ class ResultadosSimul(object):
         for v in símismo:
             v.actualizar()
 
-    def guardar(símismo, frmt='json', l_vars=None):
+    def guardar(símismo, frmt='json', l_vars=None, arch=None):
         """
         Guarda los resultados en un archivo.
 
@@ -52,18 +55,18 @@ class ResultadosSimul(object):
 
         if frmt[0] != '.':
             frmt = '.' + frmt
-        arch = valid_nombre_arch(símismo.nombre + frmt)
+        arch = arch + frmt if arch else valid_nombre_arch(símismo.nombre + frmt)
 
         if frmt == '.json':
             contenido = símismo.a_dic()
-            guardar_json(contenido, arch=arch)
+            guardar_json(jsonificar(contenido), arch=arch)
 
         elif frmt == '.csv':
 
             with open(arch, 'w', encoding='UTF-8', newline='') as a:
                 escr = csv.writer(a)
 
-                escr.writerow([_('fecha')] + símismo.t)
+                escr.writerow([_('fecha')] + list(símismo.t.eje()))
                 for var in l_vars:
                     vals = símismo[var].values
                     if len(vals.shape) == 1:
@@ -92,6 +95,10 @@ class ResultadosSimul(object):
         for vr, vl in valores.items():
             símismo[vr].poner_vals_t(vl)
 
+    def dibujar(símismo, directorio):
+        for var in símismo:
+            var.dibujar(directorio)
+
     def __str__(símismo):
         return símismo.nombre
 
@@ -110,6 +117,7 @@ class ResultadosVar(object):
     """
     Los resultados de un variable.
     """
+
     def __init__(símismo, var, t):
         símismo.var = var
         símismo.t = t
@@ -133,12 +141,31 @@ class ResultadosVar(object):
     def interpolar(símismo, fechas):
         eje_ant = símismo.vals[_('fecha')]
         nuevas_fechas = fechas.values[~np.isin(fechas.values, eje_ant.values)]
-        vals = símismo.vals
+        vals = símismo.vals.copy(deep=True)
         if nuevas_fechas.size:
             vals = vals.reindex(fecha=np.concatenate((eje_ant.values, nuevas_fechas)))
             vals = vals.sortby(_('fecha'))
             vals = vals.interpolate_na(_('fecha'))
         return vals.where(vals[_('fecha')].isin(fechas), drop=True)
+
+    def dibujar(símismo, archivo):
+        fig = Figura()
+        TelaFigura(fig)
+        ejes = fig.add_subplot(111)
+        ejes.plot(símismo.vals)
+
+        ejes.set_xlabel(_('Tiempo'))
+        ejes.set_ylabel(símismo.var.unid)
+        ejes.set_title(símismo.var.nombre)
+
+        fig.autofmt_xdate()
+        if os.path.splitext(archivo)[1] != '.jpg':
+            archivo = os.path.join(archivo, símismo.var.nombre + '.jpg')
+        directorio = os.path.split(archivo)[0]
+        if not os.path.isdir(directorio):
+            os.makedirs(directorio)
+
+        fig.savefig(archivo)
 
     def __str__(símismo):
         return str(símismo.var)

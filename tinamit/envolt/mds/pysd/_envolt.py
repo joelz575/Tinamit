@@ -2,9 +2,9 @@ from ast import literal_eval
 
 import numpy as np
 import pandas as pd
-
 from tinamit.calibs.sintx.ec import Ecuación
 from tinamit.envolt.mds.pysd._funcs import decodar
+
 from ._funcs import gen_mod_pysd, obt_paso_mod_pysd
 from ._vars import VarPySDAuxiliar, VarPySDNivel, VarPySDConstante, VariablesPySD
 from .._envolt import ModeloDS
@@ -29,7 +29,6 @@ class ModeloPySD(ModeloDS):
     def iniciar_modelo(símismo, corrida):
         # Poner los variables y el tiempo a sus valores iniciales
         símismo.mod.reload()
-        símismo.mod.initialize()
         símismo.paso_act = 0
 
         símismo.cont_simul = False
@@ -50,7 +49,10 @@ class ModeloPySD(ModeloDS):
             rebanada.resultados[v].vals[símismo.paso_act - 1] = res[v.nombre_py][símismo.paso_act - 1]
 
         símismo.cont_simul = True
-        símismo.variables.cambiar_vals({v: res[v.nombre_py].values[-1] for v in rebanada.resultados.variables()})
+        res_interés = {v: res[v.nombre_py].values[-1] for v in rebanada.resultados.variables()}
+        símismo.variables.cambiar_vals(
+            {ll: v.item() if isinstance(v, np.ndarray) and v.shape == () else v for ll, v in res_interés.items()}
+        )
 
         símismo.vars_para_cambiar.clear()
         super().incrementar(rebanada)
@@ -69,20 +71,28 @@ class ModeloPySD(ModeloDS):
                 vr: vl.squeeze().to_pandas()
                 for vr, vl in vals_extern.items()
             }
-            for ll, v in paráms.items():
-                if isinstance(v, pd.Series):
-                    v.index = eje_pysd[t.eje().isin(v.index.values)]
         else:
             paráms = {}
 
         if símismo.corrida.clima is not None:
             vars_clima = símismo.corrida.clima.obt_todos_vals(t.eje(), vars_clima=símismo.vars_clima)
             paráms.update(vars_clima)
+        for ll, v in paráms.items():
+            if isinstance(v, pd.Series):
+                v.index = eje_pysd[t.eje().isin(v.index.values)]
 
         símismo._proc_paráms(paráms)
+        iniciales = {}
+        niveles = símismo.variables.niveles()
+        for vr in list(paráms):
+            for nv in niveles:
+                if vr in nv.parientes:
+                    iniciales[str(nv)] = paráms[vr][0]
+                    break
 
         res_pysd = símismo.mod.run(
             params=paráms,
+            initial_condition='o',
             return_timestamps=eje_pysd
         )
         return {vr: res_pysd[str(vr)].values for vr in símismo.corrida.resultados.variables()}
@@ -96,6 +106,10 @@ class ModeloPySD(ModeloDS):
 
     def paralelizable(símismo):
         return True
+
+    def cerrar(símismo):
+        super().cerrar()
+        símismo.vars_para_cambiar.clear()
 
     def _proc_paráms(símismo, prms):
         for p in list(prms):

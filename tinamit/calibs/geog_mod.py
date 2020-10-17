@@ -99,7 +99,7 @@ class ValidadorGeog(object):
         """
         símismo.mod = mod
 
-    def validar(símismo, t, datos, paráms=None, funcs=None, vars_extern=None, corresp_vars=None):
+    def validar(símismo, t, datos, paráms=None, funcs=None, vars_extern=None, corresp_vars=None, clima=None):
         """
         Efectuar la validación.
 
@@ -133,13 +133,22 @@ class ValidadorGeog(object):
 
         # Para hacer: utilizar `SimuladorGeog` para paralelizar y ahorar tiempo.
         valids = {}
+        vals_datos = vals_datos.reset_index()
         for lg in tqdm(datos.lugares):
             prms_lg = paráms[lg] if lg in paráms else {}
-            datos_lg = vals_datos.where(vals_datos[_('lugar')] == lg, drop=True)
+            datos_lg = vals_datos[vals_datos[_('lugar')] == lg]
+            if isinstance(clima, dict):
+                if lg in clima:
+                    clima_lg = clima[lg]
+                else:
+                    clima_lg = None
+            else:
+                clima_lg = clima
 
-            if datos_lg.sizes['n']:
+            if len(datos_lg):
                 valids[lg] = ValidadorMod(símismo.mod).validar(
-                    t, datos=datos_lg, paráms=prms_lg, funcs=funcs, vars_extern=vars_extern, corresp_vars=corresp_vars
+                    t, datos=datos_lg, paráms=prms_lg, funcs=funcs, vars_extern=vars_extern, corresp_vars=corresp_vars,
+                    clima=clima_lg
                 )
 
         return valids
