@@ -15,7 +15,6 @@ from ..mod import ResultadosSimul, ResultadosGrupo
 def dibujar_mapa(formas, archivo=None, título=None, fig=None, args_color=None):
     """
     Dibuja un mapa.
-
     Parameters
     ----------
     formas: list of Forma
@@ -26,7 +25,6 @@ def dibujar_mapa(formas, archivo=None, título=None, fig=None, args_color=None):
         El título del mapa.
     fig: matplotlib.Figure
         Figura para dibujar el mapa.
-
     Returns
     -------
     tuple[Figure, Axes]
@@ -56,7 +54,6 @@ def dibujar_mapa_de_res(
 ):
     """
     Dibujar los resultados de una simulación en un mapa.
-
     Parameters
     ----------
     forma_dinámica: FormaDinámica
@@ -75,7 +72,6 @@ def dibujar_mapa_de_res(
         Dónnde hay que guardar el gráfico.
     otras_formas: list of FormaEstática or FormaEstática
         Las otras formas (estáticas) para incluir en el gráfico.
-
     """
     título = título or res.nombre
     otras_formas = otras_formas or []
@@ -133,14 +129,12 @@ class Forma(object):
     def dibujar(símismo, ejes, fig, args_color=None):
         """
         Agrega la forma a la figura.
-
         Parameters
         ----------
         ejes:
             Los ejes de la figura.
         fig:
             La figura.
-
         """
         raise NotImplementedError
 
@@ -190,7 +184,6 @@ class FormaDinámica(Forma):
 
     def __init__(símismo, archivo, escala_colores=None, llenar=True, alpha=1, **argsll):
         """
-
         Parameters
         ----------
         archivo: str
@@ -213,7 +206,6 @@ class FormaDinámica(Forma):
     def estab_valores(símismo, valores, escala_valores=None, unidades=None):
         """
         Establece los valores para colorar.
-
         Parameters
         ----------
         valores: np.ndarray or dict
@@ -254,9 +246,9 @@ class FormaDinámica(Forma):
         símismo._dibujar_frm(ejes=ejes, color=v_cols)
 
         if símismo.unidades is not None:
-            fig.colorbar(cpick, label=símismo.unidades, **args_color)
+            fig.colorbar(cpick, label=símismo.unidades, ax=ejes, **args_color)
         else:
-            fig.colorbar(cpick, extend='both')
+            fig.colorbar(cpick, ax=ejes, extend='both')
 
     @staticmethod
     def _resolver_colores(colores):
@@ -286,7 +278,6 @@ class FormaDinámicaNumérica(FormaDinámica):
 
     def __init__(símismo, archivo, col_id=None, escala_colores=None, llenar=True, alpha=1):
         """
-
         Parameters
         ----------
         archivo: str
@@ -325,7 +316,6 @@ class FormaDinámicaNombrada(FormaDinámica):
 
     def __init__(símismo, archivo, col_id, escala_colores=None, llenar=True, alpha=1, **argsll):
         """
-
         Parameters
         ----------
         archivo: str
@@ -357,7 +347,6 @@ class Agua(FormaEstática):
 
     def __init__(símismo, archivo, llenar=True):
         """
-
         Parameters
         ----------
         archivo: str
@@ -407,12 +396,10 @@ class OtraForma(FormaEstática):
 def _hex_a_rva(hx):
     """
     Convierte colores RVA a Hex.
-
     Parameters
     ----------
     hx: str
         El valor hex.
-
     Returns
     -------
     tuple
@@ -424,12 +411,10 @@ def _hex_a_rva(hx):
 def _gen_d_mapacolores(colores):
     """
     Genera un diccionario de mapa de color para MatPlotLib.
-
     Parameters
     ----------
     colores: list
         Una lista de colores
-
     Returns
     -------
     dict
