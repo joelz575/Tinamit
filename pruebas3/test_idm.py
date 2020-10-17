@@ -7,7 +7,7 @@ import numpy.testing as npt
 from pruebas3.ejemplo_cliente import datos
 from tinamit3.idm.puertos import IDMEnchufes
 
-t_final = 15
+t_final = 3287
 
 
 class PruebaIDM(TestCase):
@@ -17,7 +17,12 @@ class PruebaIDM(TestCase):
 
     def _empezar_cliente(símismo, dirección, puerto):
         cliente = Popen(["/home/joelz/PycharmProjects/swatplus/build/bin/swatplus_exe", str(puerto), dirección],
-                        cwd="/home/joelz/PycharmProjects/swatplus/Trial Robit/Scenarios/Default/TxtInOut")
+                        cwd="/home/joelz/modular_swatplus/data/Texas_large_gully")
+        #cliente = Popen(["/home/joelz/PycharmProjects/swatplus/build/bin/swatplus_exe", str(puerto), dirección],
+        #                cwd="/home/joelz/modular_swatplus/data/saturated_buffer")
+        #cliente = Popen(["/home/joelz/Documents/Prof Adamowski/Iximulew/SWAT+/swat+EXE/swatplusrev59", str(puerto), dirección],
+        #                cwd="/home/joelz/PycharmProjects/swatplus/Trial Robit/Scenarios/Default/TxtInOut")
+        #cliente = Popen([sys.executable, "ejemplo_cliente.py", dirección, str(puerto), str(t_final)])
         símismo.clientes.append(cliente)
         return cliente
 
@@ -51,8 +56,8 @@ class PruebaIDM(TestCase):
             símismo._empezar_cliente(servidor.dirección, servidor.puerto)
             servidor.activar()
             servidor.incrementar(n_pasos)
-
             t = servidor.recibir('t')
+            print("T is: ", t)
             símismo.assertEqual(t, n_pasos)
 
     def test_finalizar(símismo):
@@ -60,8 +65,8 @@ class PruebaIDM(TestCase):
             símismo._empezar_cliente(servidor.dirección, servidor.puerto)
             servidor.activar()
             servidor.finalizar()
-
             t = servidor.recibir('t')
+            print("T is: ", t)
             símismo.assertEqual(t, t_final)
 
     def tearDown(símismo):

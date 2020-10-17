@@ -73,15 +73,10 @@ class Mensaje(object):
         # Mandar encabezado json
         símismo.conex.sendall(encabezado_bytes)
 
-        # Revisar que el modelo recibe los encabezado_bytes
-
 
         # Mandar contenido
         if símismo.contenido:
             símismo.conex.sendall(símismo.contenido)
-
-        # Revisar que el modelo recibe los encabezado_bytes
-
 
         return símismo._procesar_respuesta()
 
@@ -149,21 +144,25 @@ class Recepción(object):
         símismo.con = con
 
     def recibir(símismo):
+
         tmñ = unpack('i', símismo.con.recv(4))[0]
 
+        print("tmn received", tmñ)
+
         encabezado = json.loads(símismo.con.recv(int(tmñ)).decode('utf8'))
+        print("encabezado received: ", encabezado)
 
         contenido = símismo.con.recv(encabezado['tamaño'])
-
+        print("contenido: ", contenido)
         return símismo._procesar(contenido, encabezado)
 
 
 
-    def _procesar(símismo, contenido, encabezado= ''):
+    def _procesar(símismo, contenido, encabezado):
         raise NotImplementedError
 
 
 class RecepciónVariable(Recepción):
     def _procesar(símismo,  contenido, encabezado):
 
-        return np.frombuffer(contenido, dtype=encabezado['tipo_cont']).reshape(encabezado['forma'])
+        return np.frombuffer(contenido, dtype=encabezado['tipo_cont']).reshape(int(encabezado['forma']))
